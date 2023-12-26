@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>testings.py</StartupFile>
+    <StartupFile>DL5YA_100.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,15 +24,13 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DL5YA_002_Gad.py" />
-    <Compile Include="DL5YA_003_Gad.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DL5YA_004_Gad.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="DL5YA_002.py" />
+    <Compile Include="DL5YA_003.py" />
+    <Compile Include="DL5YA_004.py" />
     <Compile Include="DL5YA_005.py" />
-    <Compile Include="DL5YA_006_1.py" />
+    <Compile Include="DL5YA_006.py" />
+    <Compile Include="DL5YA_008.py" />
+    <Compile Include="DL5YA_100.py" />
     <Compile Include="testings.py" />
     <Compile Include="unit10\b_utils.py" />
     <Compile Include="unit10\c1w2_utils.py" />
