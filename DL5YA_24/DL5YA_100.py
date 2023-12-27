@@ -1,4 +1,4 @@
-# 100
+# 100 and 101 are together in one file
 # Gad Lidror
 import numpy as np
 import matplotlib.pyplot as plt
