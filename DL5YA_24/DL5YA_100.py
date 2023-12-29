@@ -6,6 +6,7 @@ import h5py
 from PIL import Image
 import unit10.c1w2_utils as u10
 
+
 # Loading the data (cat/non-cat)
 train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = u10.load_datasetC1W2()
 
