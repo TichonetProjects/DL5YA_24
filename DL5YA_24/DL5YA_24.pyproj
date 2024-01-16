@@ -24,6 +24,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DL1.py" />
     <Compile Include="DL5YA_002.py" />
     <Compile Include="DL5YA_003.py" />
     <Compile Include="DL5YA_004.py" />
