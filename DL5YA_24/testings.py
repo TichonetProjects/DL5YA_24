@@ -1,33 +1,45 @@
-﻿import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-import time
-import random
-import unit10.c1w2_utils as u10
-#from MyVector import *
+﻿
+from DL1 import *
 
-# Loading the data (cat/non-cat)
-train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = u10.load_datasetC1W2()
 
-train_set_y = train_set_y.reshape(-1)
-test_set_y = test_set_y.reshape(-1)
+# Exc 1.1:
+print("Exc 1.1:")
+np.random.seed(1)
 
-# Example of a picture
-index = 4 # change index to get a different picture
-plt.imshow(train_set_x_orig[index])
-plt.show()
-print ("y = " + str(train_set_y[index]) + ", it's a '" + 
-classes[np.squeeze(train_set_y[index])].decode("utf-8") +  "' picture.")
+l = [None]
+l.append(DLLayer("Hidden 1", 6, (4000,)))
 
-m_train = train_set_y.shape[0]
-m_test = test_set_y.shape[0]
-num_px = train_set_x_orig.shape[1]
+print(l[1])
+l.append(DLLayer("Hidden 2", 12, (6,), "leaky_relu", "random", 0.5,"adaptive"))
 
-print ("Number of training examples: m_train = " + str(m_train))
-print ("Number of testing examples: m_test = " + str(m_test))
-print ("Height/Width of each image: num_px = " + str(num_px))
-print ("Each image is of size: (" + str(num_px) + ", " + str(num_px) + ", 3)")
-print ("train_set_x shape: " + str(train_set_x_orig.shape))
-print ("train_set_y shape: " + str(train_set_y.shape))
-print ("test_set_x shape: " + str(test_set_x_orig.shape))
-print ("test_set_y shape: " + str(test_set_y.shape))
+l[2].adaptive_cont = 1.2
+print(l[2])
+l.append(DLLayer("Neurons 3",16, (12,),"tanh"))
+print(l[3])
+
+l.append(DLLayer("Neurons 4",3, (16,),"sigmoid", "random", 0.2, "adaptive"))
+l[4].random_scale = 10.0
+l[4].init_weights("random")
+print(l[4])
+
+
+# Exc 1.2:
+print("\n\nExc 1.2:")
+Z = np.array([[1,-2,3,-4], [-10,20,30,-40]])
+
+l[2].leaky_relu_d = 0.1
+
+for i in range(1, len(l)):
+    print(l[i].activation_forward(Z))
+
+# Exc 1.3:
+print("\n\nExc 1.3:")
+np.random.seed(2)
+m = 3
+X = np.random.randn(4000,m)
+Al = X
+
+for i in range(1, len(l)):
+
+    Al = l[i].forward_propagation(Al, True)
+    print('layer',i," A", str(Al.shape), ":\n", Al)
