@@ -1,9 +1,8 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 class DLLayer:
-    def __init__(self, name, num_units, input_shape, activation="relu", W_initialization="random", learning_rate=0.01, optimization=None, activation_forward = None ):
+    def __init__(self, name, num_units, input_shape, activation="relu", W_initialization="random", learning_rate=0.01, optimization=None, activation_forward = None, activation_backward = None ):
         self._num_units = num_units
         self._input_shape = input_shape
         self._activation = activation
@@ -11,6 +10,7 @@ class DLLayer:
         self._alpha = learning_rate
         self._name = name
         self._activation_forward = activation_forward if activation_forward is not None else self.activation
+        self._activation_backward = activation_backward if activation_backward is not None else self.activation
 
         # Activation parameters
         self._activation_trim = 1e-10
@@ -91,20 +91,11 @@ class DLLayer:
         elif self._activation == "trim_sigmoid":
             return self._trim_sigmoid(Z)
         else:
-            raise Exception("Activation function not implemented")
+            raise Exception("Activation function doesn't exist")
         
     def activation_forward(self, Z):
         return self.activation(Z)
-    #propagation forward 1.3                 
-    def forward_propagation(self, A_prev, is_predict):
-        Z = np.dot(self.W, A_prev) + self.b
-        A = self._activation_forward(Z)
-        
-        if not is_predict:
-            self._A_prev = A_prev
-            self._Z = Z
-
-        return A
+    
     #propagation backward 1.4
     def tanh_backward(self, dA):
         A = np.tanh(self._Z)
@@ -131,8 +122,8 @@ class DLLayer:
         elif self._activation == "tanh":
             return self.tanh_backward(dA)
         else:
-            raise Exception("Activation function not implemented")
-        
+            raise Exception("Activation function doesn't exist")
+    
     def backward_propagation(self, dA):
         m = dA.shape[1]
                        
@@ -149,7 +140,16 @@ class DLLayer:
             self.W -= self._adaptive_alpha_W * dW
         
         return dA_prev
+    #propagation forward 1.3                 
+    def forward_propagation(self, A_prev, is_predict):
+        Z = np.dot(self.W, A_prev) + self.b
+        A = self._activation_forward(Z)
+        
+        if not is_predict:
+            self._A_prev = A_prev
+            self._Z = Z
 
+        return A
     def __str__(self):
         s = self._name + " Layer:\n"
         s += "\tnum_units: " + str(self._num_units) + "\n"
@@ -165,8 +165,8 @@ class DLLayer:
         # Optimization
         if self._optimization == "adaptive":
             s += "\t\tadaptive parameters:\n"
-            s += "\t\t\tcont: " + str(self._adaptive_cont) + "\n"
-            s += "\t\t\tswitch: " + str(self._adaptive_switch) + "\n"
+            s += "\t\t\tcont: " + str(self.adaptive_cont) + "\n"
+            s += "\t\t\tswitch: " + str(self.adaptive_switch) + "\n"
 
         # Parameters
         s += "\tparameters:\n\t\tb.T: " + str(self.b.T) + "\n"
@@ -177,5 +177,3 @@ class DLLayer:
         plt.show()
 
         return s
-
- 
