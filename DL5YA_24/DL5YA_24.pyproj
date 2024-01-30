@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>DL5YA_110.py</StartupFile>
+    <StartupFile>testings.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
