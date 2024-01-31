@@ -12,8 +12,9 @@
     <OutputPath>.</OutputPath>
     <Name>DL5YA_24</Name>
     <RootNamespace>DL5YA_002_Gad</RootNamespace>
-    <InterpreterId>Global|PythonCore|3.11</InterpreterId>
+    <InterpreterId>Global|VisualStudio|tmp_sklearn</InterpreterId>
     <TestFramework>Pytest</TestFramework>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -35,6 +36,7 @@
     <Compile Include="DL5YA_100.py" />
     <Compile Include="DL1.py" />
     <Compile Include="StudantDL.py" />
+    <Compile Include="Test2.py" />
     <Compile Include="testings.py" />
     <Compile Include="unit10\b_utils.py" />
     <Compile Include="unit10\c1w2_utils.py" />
@@ -96,6 +98,7 @@
     <InterpreterReference Include="Global|PythonCore|3.11" />
     <InterpreterReference Include="Global|VisualStudio|env1" />
     <InterpreterReference Include="Global|VisualStudio|env4" />
+    <InterpreterReference Include="Global|VisualStudio|tmp_sklearn" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

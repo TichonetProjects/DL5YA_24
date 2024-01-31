@@ -66,7 +66,7 @@ class DLLayer:
 
         plt.hist(self.W.reshape(-1))
         plt.title("W histogram")
-        plt.show()
+        ##plt.show()
 
         return s
     

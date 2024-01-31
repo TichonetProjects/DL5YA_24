@@ -135,21 +135,24 @@ class DLLayer:
         
     def backward_propagation(self, dA):
         m = dA.shape[1]
-                       
         dZ = self.activation_backward(dA)
-        dW = 1/m * np.dot(dZ, self._A_prev.T)
-        db = 1/m * np.sum(dZ, axis=1, keepdims=True)
+        self.dW = 1/m * np.dot(dZ, self._A_prev.T) 
+        self.db = 1/m * np.sum(dZ, axis=1, keepdims=True) 
         dA_prev = np.dot(self.W.T, dZ)
         
-        # Update parameters 1.6
-        if self._optimization == "adaptive":
-            self._adaptive_alpha_b = np.where(dZ * self._Z > 0, self._adaptive_alpha_b * self._adaptive_cont, self._adaptive_alpha_b * self._adaptive_switch)
-            self._adaptive_alpha_W = np.where(dZ * self._Z > 0, self._adaptive_alpha_W * self._adaptive_cont, self._adaptive_alpha_W * self._adaptive_switch)
-            self.b -= self._adaptive_alpha_b * db
-            self.W -= self._adaptive_alpha_W * dW
-        
         return dA_prev
-
+        
+        # 1.6 update_parameters"  - updates the weights and bias
+    def update_parameters(self):
+        if self._optimization == "adaptive":
+            self._adaptive_alpha_W = np.where(self._adaptive_alpha_W * self.dW > 0, self._adaptive_alpha_W * self._adaptive_cont, self._adaptive_alpha_W * self._adaptive_switch)
+            self._adaptive_alpha_b = np.where(self._adaptive_alpha_b * self.db > 0, self._adaptive_alpha_b * self._adaptive_cont, self._adaptive_alpha_b * self._adaptive_switch)
+            self.W -= self._adaptive_alpha_W * self.dW
+            self.b -= self._adaptive_alpha_b * self.db
+        else:
+            self.W -= self._alpha * self.dW
+            self.b -= self._alpha * self.db
+        
     def __str__(self):
         s = self._name + " Layer:\n"
         s += "\tnum_units: " + str(self._num_units) + "\n"
@@ -172,9 +175,9 @@ class DLLayer:
         s += "\tparameters:\n\t\tb.T: " + str(self.b.T) + "\n"
         s += "\t\tshape weights: " + str(self.W.shape) + "\n"
 
-        plt.hist(self.W.reshape(-1))
-        plt.title("W histogram")
-        plt.show()
+        ##plt.hist(self.W.reshape(-1))
+        ##plt.title("W histogram")
+        ##plt.show()
 
         return s
 
