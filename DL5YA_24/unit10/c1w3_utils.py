@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import sklearn
-import sklearn.datasets
-import sklearn.linear_model
+#import sklearn
+#import sklearn.datasets
+#import sklearn.linear_model
 
 def main():
     if __name__ == "__main__":
@@ -58,7 +58,7 @@ def load_planar_dataset():
     Y = Y.T
 
     return X, Y
-
+"""
 def load_extra_datasets():  
     N = 200
     noisy_circles = sklearn.datasets.make_circles(n_samples=N, factor=.5, noise=.3)
@@ -69,7 +69,7 @@ def load_extra_datasets():
 
     return noisy_circles, noisy_moons, blobs, gaussian_quantiles, no_structure
 
-
+"""
 ###### Test cases procedures
 import numpy as np
 

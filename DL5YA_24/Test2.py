@@ -1,182 +1,129 @@
 
-from StudantDL import *
-np.random.seed(1)
-
-l = [None]
-
-l.append(DLLayer("Hidden 1", 6, (4000,)))
-
-print(l[1])
-
-l.append(DLLayer("Hidden 2", 12,
-(6,),"leaky_relu", "random", 0.5,"adaptive"))
-
-l[2].adaptive_cont = 1.2
-
-print(l[2])
-
-l.append(DLLayer("Neurons 3",16, (12,),"tanh"))
-
-print(l[3])
-
-l.append(DLLayer("Neurons 4",3, (16,),"sigmoid",
-"random", 0.2, "adaptive"))
-
-l[4].random_scale = 10.0
-
-l[4].init_weights("random")
-
-print(l[4])
-
-
-
-
-Z = np.array([[1,-2,3,-4],
-
-[-10,20,30,-40]])
-
-l[2].leaky_relu_d = 0.1
-
-for i in range(1, len(l)):
-
-    print(l[i].activation_forward(Z))
-
-
-
-
-np.random.seed(2)
-
-m = 3
-
-X = np.random.randn(4000,m)
-
-Al = X
-
-for i in range(1, len(l)):
-
-    Al = l[i].forward_propagation(Al, True)
-
-    print('layer',i," A", str(Al.shape), ":\n", Al)
-
-
-
-
-Al = X
-
-for i in range(1, len(l)):
-
-    Al = l[i].forward_propagation(Al, True)
-
-    dZ = l[i].activation_backward(Al)
-
-    print('layer',i," dZ", str(dZ.shape), ":\n", dZ)
-
-
-
-
-Al = X
-
-for i in range(1, len(l)):
-
-    Al = l[i].forward_propagation(Al, False)
-
-np.random.seed(3)
-fig, axes = plt.subplots(1, 4, figsize=(12,16))
-fig.subplots_adjust(hspace=0.5, wspace=0.5)
-dAl = np.random.randn(Al.shape[0],m) * np.random.random_integers(-100, 100, Al.shape)
-
-for i in reversed(range(1,len(l))):
-
-    axes[i-1].hist(dAl.reshape(-1), align='left')
-    axes[i-1].set_title('dAl['+str(i)+']')
-    dAl = l[i].backward_propagation(dAl)
-    if (i==4):
-        print ("-----------------")
-        print (dAl)
-        print ("-----------------")
-
-plt.show()
-
-
-
-
-np.random.seed(4)
-
-l1 = DLLayer("Hidden1", 3, (4,),"trim_sigmoid", "zeros", 0.2, "adaptive")
-l2 = DLLayer("Hidden2", 2, (3,),"relu", "random", 1.5)
-
-print("before update:W1\n"+str(l1.W)+"\nb1.T:\n"+str(l1.b.T))
-print("W2\n"+str(l2.W)+"\nb2.T:\n"+str(l2.b.T))
-
-l1.dW = np.random.randn(3,4) * np.random.randint(-100,100)
-l1.db = np.random.randn(3,1) * np.random.randint(-100,100)
-l2.dW = np.random.randn(2,3) * np.random.randint(-100,100)
-l2.db = np.random.randn(2,1) * np.random.randint(-100,100)
-
-l1.update_parameters()
-l2.update_parameters()
-
-print("after update:W1\n"+str(l1.W)+"\nb1.T:\n"+str(l1.b.T))
-print("W2\n"+str(l2.W)+"\nb2.T:\n"+str(l2.b.T))
-
-
-
-
-np.random.seed(1)
-
-m1 = DLModel()
-
-AL = np.random.rand(4,3)
-
-Y = np.random.rand(4,3) > 0.7
-
-m1.compile("cross_entropy")
-
-errors = m1.loss_forward(AL,Y)
-
-dAL = m1.loss_backward(AL,Y)
-
-print("cross entropy error:\n",errors)
-
-print("cross entropy dAL:\n",dAL)
-
-m2 = DLModel()
-
-m2.compile("squared_means")
-
-errors = m2.loss_forward(AL,Y)
-
-dAL = m2.loss_backward(AL,Y)
-
-print("squared means error:\n",errors)
-
-print("squared means dAL:\n",dAL)
-
-
-
-print("cost m1:", m1.compute_cost(AL,Y))
-
-print("cost m2:", m2.compute_cost(AL,Y))
-
-
-
-
-np.random.seed(1)
-
-model = DLModel();
-
-model.add(DLLayer("Perseptrons 1", 10,(12288,)))
-
-model.add(DLLayer("Perseptrons 2",
-1,(10,),"trim_sigmoid"))
-
-model.compile("cross_entropy", 0.7)
-
-X = np.random.randn(12288,10) * 256
-
-print("predict:",model.predict(X))
-
-
-
-print(model)
-
+import numpy as np
+import matplotlib.pyplot as plt
+import random
+import math
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+def relu(x):
+    return np.maximum(0,x)
+def leaky_relu(x):
+    return np.maximum(0.1*x,x)
+def tanh(x):
+    return np.tanh(x)
+def softmax(x):
+    return np.exp(x)/np.sum(np.exp(x), axis=0)
+def cross_entropy_loss(Y, A):
+    return -np.sum(Y*np.log(A))/Y.shape[1]
+def dSigmoid_dZ(Z):
+    return sigmoid(Z)*(1-sigmoid(Z))
+def dRelu_dZ(Z):
+    return np.where(Z>0,1,0)
+def dLeaky_relu_dZ(Z):
+    return np.where(Z>0,1,0.1)
+def dTanh_dZ(Z):
+    return 1-np.tanh(Z)**2
+def dSoftmax_dZ(Z):
+    return Z*(1-Z)
+def dCross_entropy_loss_dZ(Y, A):
+    return A-Y
+
+class DLLayer:
+    def __init__(self, name, num_units, input_shape: tuple, activation="relu", W_initialization ="random", Learning_Rate=0.001, optimization = "none"):
+        def relu_backward(self, dA):
+            dZ = np.where(self._Z <= 0, 0, dA)
+            return dZ
+        def leaky_relu_backward(self, dA):
+            dZ = np.where(self._Z <= 0, self.leaky_relu_d*dA, dA)
+            return dZ
+        def tanh_backward(self, dA):
+            dZ = dA*(1-np.tanh(self._Z)**2)
+            return dZ
+        def sigmoid_backward(self, dA):
+            A = self._sigmoid(self._Z)
+            dZ = dA * A * (1-A)
+            return dZ
+        def softmax_backward(self, dA):
+            dZ = dA * self._A * (1-self._A)
+            return dZ
+        def backward_propagation(self, dA):
+            if self.activation == "sigmoid":
+                dZ = sigmoid_backward(self, dA)
+            elif self.activation == "relu":
+                dZ = relu_backward(self, dA)
+            elif self.activation == "leaky_relu":
+                dZ = leaky_relu_backward(self, dA)
+            elif self.activation == "tanh":
+                dZ = tanh_backward(self, dA)
+            elif self.activation == "softmax":
+                dZ = softmax_backward(self, dA)
+            self.dW = np.dot(dZ, self._A.T)/self._A.shape[1]
+            self.db = np.sum(dZ, axis=1, keepdims=True)/self._A.shape[1]
+            dA_prev = np.dot(self.W.T, dZ)
+            return dA_prev
+        def update_parameters(self):
+            if self.optimization == "none":
+                self.W = self.W-self.Learning_Rate*self.dW
+                self.b = self.b-self.Learning_Rate*self.db
+            elif self.optimization == "adaptive":
+                self.W = self.W-self.Learning_Rate*self.dW
+                self.b = self.b-self.Learning_Rate*self.db
+                self.Learning_Rate = self.Learning_Rate*1.2
+            elif self.optimization == "momentum":
+                self.W = self.W-self.Learning_Rate*self.dW
+                self.b = self.b-self.Learning_Rate*self.db
+                self.Learning_Rate = self.Learning_Rate*1.2
+            elif self.optimization == "rmsprop":
+                self.W = self.W-self.Learning_Rate*self.dW
+                self.b = self.b-self.Learning_Rate*self.db
+                self.Learning_Rate = self.Learning_Rate*1.2
+            elif self.optimization == "adam":
+                self.W = self.W-self.Learning_Rate*self.dW
+                self.b = self.b-self.Learning_Rate*self.db
+                self.Learning_Rate = self.Learning_Rate*1.2
+        def init_weights(self, W_initialization):
+            if W_initialization == "random":
+                self.W = np.random.randn(self.num_units, self.input_shape[0])*self.random_scale
+                self.b = np.zeros((self.num_units,1))
+            elif W_initialization == "xavier":
+                self.W = np.random.randn(self.num_units, self.input_shape[0])*np.sqrt(1/self.input_shape[0])
+                self.b = np.zeros((self.num_units,1))
+            elif W_initialization == "he":
+                self.W = np.random.randn(self.num_units, self.input_shape[0])*np.sqrt(2/self.input_shape[0])
+                self.b = np.zeros((self.num_units,1))
+        self.name = name
+        self.num_units = num_units
+        self.input_shape = input_shape
+        self.activation = activation
+        self.W_initialization = W_initialization
+        self.Learning_Rate = Learning_Rate
+        self.optimization = optimization
+        self.W = init_weights(self, self.W_initialization)
+        self.b = np.zeros((self.num_units,1))
+        self.dW = np.zeros((self.num_units, self.input_shape[0]))
+        self.db = np.zeros((self.num_units,1))
+        update_parameters(self)
+        self.adaptive_cont = 1.2
+        self.leaky_relu_d = 0.01
+        self.adaptive_switch = 100
+        self.random_scale = 1.0
+        
+    def __str__(self):
+        s = self.name + " Layer:\n"
+        s += "\tnum_units: " + str(self.num_units) + "\n"
+        s += "\tactivation: " + self.activation + "\n"
+        if self.activation == "leaky_relu":
+            s += "\t\tleaky relu parameters:\n"
+            s += "\t\t\tleaky_relu_d: " + str(self.leaky_relu_d)+"\n"
+        s += "\tinput_shape: " + str(self.input_shape) + "\n"
+        s += "\tlearning_rate (alpha): " + str(self.Learning_Rate) + "\n"
+        if self.optimization == "adaptive":
+            s += "\t\tadaptive parameters:\n"
+            s += "\t\t\tcont: " + str(self.adaptive_cont)+"\n"
+            s += "\t\t\tswitch: " + str(self.adaptive_switch)+"\n"
+        s += "\tparameters:\n\t\tb.T: " + str(self.b.T) + "\n"
+        s += "\t\tshape weights: " + str(self.W.shape)+"\n"
+        plt.hist(self.W.reshape(-1))
+        plt.title("W histogram")
+        plt.show()
+        return s;
