@@ -1,5 +1,7 @@
-﻿import numpy as np
+﻿# Shon - testing.py
+import numpy as np
 import matplotlib.pyplot as plt
+import random
 import sklearn
 import sklearn.datasets
 from unit10 import c2w1_init_utils as u10
@@ -7,26 +9,143 @@ from SDL1 import *
 import os
 import h5py
 
+# question 1.1
+np.random.seed(1)
+l = [None]
+l.append(DLLayer("Hidden 1", 6, (4000,)))
+print(l[1])
+l.append(DLLayer("Hidden 2", 12, (6,),"leaky_relu", "random", 0.5,"adaptive"))
+l[2].adaptive_cont = 1.2
+print(l[2])
+l.append(DLLayer("Neurons 3",16, (12,),"tanh"))
+print(l[3])
+l.append(DLLayer("Neurons 4",3, (16,),"sigmoid",
+"random", 0.2, "adaptive"))
+l[4].random_scale = 10.0
+l[4].init_weights("random")
+print(l[4])
+
+# question 1.2
+Z = np.array([[1,-2,3,-4],
+[-10,20,30,-40]])
+l[2].leaky_relu_d = 0.1
+for i in range(1, len(l)):
+    print(l[i].activation_forward(Z))
+    
+
+# question 1.3
+np.random.seed(2)
+m = 3
+X = np.random.randn(4000,m)
+Al = X
+for i in range(1, len(l)):
+    Al = l[i].forward_propagation(Al, True)
+    print('layer',i," A", str(Al.shape), ":\n", Al)
+    
+
+# question 1.4
+Al = X
+for i in range(1, len(l)):
+    Al = l[i].forward_propagation(Al, True)
+    dZ = l[i].activation_backward(Al)
+    print('layer',i," dZ", str(dZ.shape), ":\n", dZ)
+    
+
+# question 1.5
+Al = X
+for i in range(1, len(l)):
+    Al = l[i].forward_propagation(Al, False)
+    
+np.random.seed(3)
+fig, axes = plt.subplots(1, 4, figsize=(12,16))
+fig.subplots_adjust(hspace=0.5, wspace=0.5)
+dAl = np.random.randn(Al.shape[0],m) * np.random.random_integers(-100, 100, Al.shape)
+for i in reversed(range(1,len(l))):
+    axes[i-1].hist(dAl.reshape(-1), align='left')
+    axes[i-1].set_title('dAl['+str(i)+']')
+    dAl = l[i].backward_propagation(dAl)
+plt.show()
 
 
-plt.rcParams['figure.figsize'] = (7.0, 4.0) 
+# question 1.6
+np.random.seed(4)
+l1 = DLLayer("Hidden1", 3, (4,),"trim_sigmoid", "zeros", 0.2, "adaptive")
+l2 = DLLayer("Hidden2", 2, (3,),"relu", "random", 1.5)
+
+print("before update:W1\n"+str(l1.W)+"\nb1.T:\n"+str(l1.b.T))
+print("W2\n"+str(l2.W)+"\nb2.T:\n"+str(l2.b.T))
+
+l1.dW = np.random.randn(3,4) * np.random.randint(-100,100)
+l1.db = np.random.randn(3,1) * np.random.randint(-100,100)
+l2.dW = np.random.randn(2,3) * np.random.randint(-100,100)
+l2.db = np.random.randn(2,1) * np.random.randint(-100,100)
+l1.update_parameters()
+l2.update_parameters()
+print("after update:W1\n"+str(l1.W)+"\nb1.T:\n"+str(l1.b.T))
+
+print("W2\n"+str(l2.W)+"\nb2.T:\n"+str(l2.b.T))
+
+
+# question 2.3
+np.random.seed(1)
+m1 = DLModel()
+AL = np.random.rand(4,3)
+Y = np.random.rand(4,3) > 0.7
+m1.compile("cross_entropy")
+errors = m1.loss_forward(AL,Y)
+dAL = m1.loss_backward(AL,Y)
+print("cross entropy error:\n",errors)
+print("cross entropy dAL:\n",dAL)
+m2 = DLModel()
+m2.compile("squared_means")
+errors = m2.loss_forward(AL,Y)
+dAL = m2.loss_backward(AL,Y)
+print("squared means error:\n",errors)
+print("squared means dAL:\n",dAL)
+
+
+# question 2.4
+print("cost m1:", m1.compute_cost(AL,Y))
+print("cost m2:", m2.compute_cost(AL,Y))
+
+# question 2.5
+np.random.seed(1)
+model = DLModel();
+model.add(DLLayer("Perseptrons 1", 10,(12288,)))
+model.add(DLLayer("Perseptrons 2", 1,(10,),"trim_sigmoid"))
+model.compile("cross_entropy", 0.7)
+X = np.random.randn(12288,10) * 256
+print("predict:",model.predict(X))
+
+# question 2.6
+print(model)
+
+
+# Presention 130
+# buldingTheProject
+plt.rcParams['figure.figsize'] = (7.0, 4.0)
 plt.rcParams['image.interpolation'] = 'nearest'
 plt.rcParams['image.cmap'] = 'gray'
-
 # load image dataset: blue/red dots in circles
 train_X, train_Y, test_X, test_Y = u10.load_dataset()
 plt.show()
 
+# question 130 - 1.1
 np.random.seed(1)
-hidden1 = DLLayer("Perseptrons 1", 30,(12288,),"relu",W_initialization = "Xaviar",learning_rate = 0.0075, optimization='adaptive')
-hidden2 = DLLayer("Perseptrons 2", 15,(30,),"trim_sigmoid",W_initialization = "He",learning_rate = 0.1)
+hidden1 = DLLayer("Perseptrons 1",
+30,(12288,),"relu",W_initialization = "Xaviar",learning_rate
+= 0.0075, optimization='adaptive')
+hidden2 = DLLayer("Perseptrons 2",
+15,(30,),"trim_sigmoid",W_initialization = "He",learning_rate
+= 0.1)
 print(hidden1)
 print(hidden2)
 
+# question 130 - 1.2    
 hidden1 = DLLayer("Perseptrons 1", 10,(10,),"relu",W_initialization = "Xaviar",learning_rate = 0.0075)
 hidden1.b = np.random.rand(hidden1.b.shape[0], hidden1.b.shape[1])
 hidden1.save_weights("SaveDir","Hidden1")
-hidden2 = DLLayer ("Perseptrons 2", 10,(10,),"trim_sigmoid",W_initialization = "SaveDir/Hidden1.h5",learning_rate = 0.1)
+hidden2 = DLLayer ("Perseptrons 2", 10,(10,),"trim_sigmoid",W_initialization ="SaveDir/Hidden1.h5",learning_rate = 0.1)
 print(hidden1)
 print(hidden2)
 model = DLModel()
@@ -36,14 +155,7 @@ dir = "model"
 model.save_weights(dir)
 print(os.listdir(dir))
 
-# ex 1.3
-model = DLModel("zerooooo")
-model.add(DLLayer("Pres 1",10,(2,),"relu","zeros",0.01,))
-model.add(DLLayer("Pres 1",5,(10,),"relu","zeros",0.01,))
-model.add(DLLayer("Pres 1",1,(5,),"trim_sigmoid","zeros",0.1,))
-model.compile("cross_entropy",0.5)
-
-
+# question 130 - 1.3
 costs = model.train(train_X, train_Y, 15000)
 plt.plot(costs)
 plt.ylabel('cost')
@@ -52,56 +164,3 @@ axes = plt.gca()
 axes.set_ylim([0.65,0.75])
 plt.title("Model with -zeros- initialization")
 plt.show()
-
-# ex 4
-
-model2 = DLModel("random")
-model2.add(DLLayer("Pres 1",10,(2,),"relu","random",0.01,"None",0.7))
-model2.add(DLLayer("Pres 1",5,(10,),"relu","random",0.01,"None",0.7))
-model2.add(DLLayer("Pres 1",1,(5,),"trim_sigmoid","random",0.1,"None",0.7))
-model2.compile("cross_entropy",0.5)
-
-costs = model2.train(train_X, train_Y, 20000)
-plt.plot(costs)
-plt.ylabel('cost')
-plt.xlabel('iterations (per 150s)')
-plt.title(" –random- initialization")
-plt.show()
-
-plt.title("Model with –random- initialization")
-axes = plt.gca()
-axes.set_xlim([-1.5,1.5])
-axes.set_ylim([-1.5,1.5])
-u10.plot_decision_boundary(lambda x: model2.predict(x.T), test_X, test_Y)
-
-predictions = model2.predict(train_X)
-print ('Train accuracy: %d' % float((np.dot(train_Y,predictions.T) + np.dot(1-train_Y,1-predictions.T))/float(train_Y.size)*100) + '%')
-predictions = model2.predict(test_X)
-print ('Test accuracy: %d' % float((np.dot(test_Y,predictions.T) + np.dot(1-test_Y,1-predictions.T))/float(test_Y.size)*100) + '%')
-
-# ex 5
-
-random.seed(2)
-model3 = DLModel("random")
-model3.add(DLLayer("Pres 1",10,(2,),"relu","He",0.1,"None",0.8))
-model3.add(DLLayer("Pres 1",5,(10,),"relu","He",0.1,"None",0.8))
-model3.add(DLLayer("Pres 1",1,(5,),"trim_sigmoid","He",0.1,"None",0.8))
-model3.compile("cross_entropy",0.5)
-
-costs = model3.train(train_X, train_Y, 15000)
-plt.plot(costs)
-plt.ylabel('cost')
-plt.xlabel('iterations (per 150s)')
-plt.title(" –random- initialization")
-plt.show()
-
-plt.title("Model with –random- initialization")
-axes = plt.gca()
-axes.set_xlim([-1.5,1.5])
-axes.set_ylim([-1.5,1.5])
-u10.plot_decision_boundary(lambda x: model2.predict(x.T), test_X, test_Y)
-
-predictions = model2.predict(train_X)
-print ('Train accuracy: %d' % float((np.dot(train_Y,predictions.T) + np.dot(1-train_Y,1-predictions.T))/float(train_Y.size)*100) + '%')
-predictions = model2.predict(test_X)
-print ('Test accuracy: %d' % float((np.dot(test_Y,predictions.T) + np.dot(1-test_Y,1-predictions.T))/float(test_Y.size)*100) + '%')

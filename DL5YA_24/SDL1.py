@@ -1,34 +1,31 @@
-# Roy Cohen - DLLayer class - from 1.1 to 1.3(including 1.4 working as well with 1.5-1.6 partly working (there are some bugs that I wasn't able to fix yet))
-from tkinter import SEL
+# Shon - Dl1.py
 import numpy as np
 import matplotlib.pyplot as plt
 import random
 import os
 import h5py
+
 class DLLayer:
-    def __init__(self, name, num_units, input_shape, activation="relu", W_initialization="random", learning_rate = 0.01, optimization = "None", random_scale = 0.01):
-        # initialize the weights and bias
+    
+    def __init__(self, name, num_units, input_shape, activation="relu", W_initialization="random", learning_rate = 0.01, optimization = "None"):
         self._name = name
         self._num_units = num_units
         self._input_shape = input_shape
         self._activation = activation
         self._learning_rate = learning_rate
         self._optimization = optimization
-        self.random_scale = random_scale
+
 
         if self._optimization == "adaptive":
             self._adaptive_alpha_b = np.full((self._num_units, 1), self._learning_rate)
             self._adaptive_alpha_W = np.full((self._num_units, *(self._input_shape)), self._learning_rate)
 
         self.adaptive_cont = 1.1
-        self.adaptive_switch = 0.5
-        
-        self.activation_trim = 1e-10
+        self.adaptive_switch = -0.5
 
-        # the original is relu
-        self.activation_forward = self.__relu
-        self.activation_backward = self._relu_backward
-        
+        if (activation == "relu"):
+            self.activation_forward = self.__relu
+            self.activation_backward = self._relu_backward
         if (activation == "sigmoid"):
             self.activation_forward = self.__sigmoid
             self.activation_backward = self._sigmoid_backward
@@ -49,29 +46,17 @@ class DLLayer:
             self.activation_backward = self._trim_tanh_backward
             
         
+        self.random_scale = 0.01
         self.init_weights(W_initialization)
 
     def init_weights(self, W_initialization):
+
         self.b = np.zeros((self._num_units,1), dtype=float)
         if W_initialization == "zeros":
             self.W = np.zeros((self._num_units, *(self._input_shape)), dtype=float)
-        elif W_initialization == "He":
-            self.W = np.random.randn(self._num_units, *(self._input_shape)) * np.sqrt(1/self._input_shape[0]) * self.random_scale
-        elif W_initialization == "Xaviar":
-            self.W = np.random.randn(self._num_units, *(self._input_shape)) * np.sqrt(2/self._input_shape[0]) * self.random_scale
-        elif W_initialization == "random":
+        else:
             self.W = np.random.randn(self._num_units, *(self._input_shape)) * self.random_scale
-        else:  
-            try:
-                with h5py.File(W_initialization, 'r') as hf:
-                    self.W = hf['W'][:]
-                    self.b = hf['b'][:]
-            except (FileNotFoundError):
-                raise NotImplementedError("Unrecognized initialization:", W_initialization)
-        if (0 in self.W):
-            print("true")
-   
-
+    
     # forwards: 
     def __sigmoid(self, Z):
         return 1 / (1 + np.exp(-Z))
@@ -105,27 +90,29 @@ class DLLayer:
         return A
     
     def forward_propagation(self, A_prev, is_predict):
-        # copy the previous layer's results
         self._A_prev = np.array(A_prev, copy=True)
-        # calculate the linear function
         self._Z = np.dot(self.W, self._A_prev) + self.b
-        # activate that and return it 
-        return self.activation_forward(self._Z)
+        if (is_predict):
+            self._A = self.activation_forward(self._Z)
+        else:
+            self._A = self.activation_forward(self._Z)
+        return self._A
 
     # backwords:
     def _sigmoid_backward(self, dA):
         A = self.__sigmoid(self._Z)
-        return dA * A * (1-A)
+        dZ = dA * A * (1-A)
+        return dZ
 
     def _leaky_relu_backward(self, dA):
-        return np.where(self._Z <= 0, dA * self.leaky_relu_d, dA)    
+        return np.where(self._Z < 0, dA * self.leaky_relu_d, dA)    
 
-    def _relu_backward(self,dA):
-        return np.where(self._Z <= 0, 0, dA)
+    def _relu_backward(self, dA):
+        dZ = np.where(self._Z <= 0, 0, dA)
+        return dZ
     
-    # I do not understand why the function that I created didn't work but I found this on the Internet and it works and it does the same thing as the function that I created
     def _tanh_backward(self, dA):
-        return dA * (1 - np.power(self.__tanh(self._Z), 2))
+        return  dA * (1- np.power(self.__tanh(self._Z),2))
     
     def _trim_sigmoid_backward(self, dA):
         return self._sigmoid_backward(dA)
@@ -134,44 +121,49 @@ class DLLayer:
         return self._tanh_backward(dA)
  
     def backward_propagation(self, dA):
-        # calculate the derivative of the activation function
         dZ = self.activation_backward(dA)
-        # calculate the derivative of the weights
-        self.dW = np.dot(dZ, self._A_prev.T) * (1/self._A_prev.shape[1])
-        # calculate the derivative of the bias
-        self.db = np.sum(dZ, axis=1, keepdims=True) * (1/self._A_prev.shape[1])
-        # calculate the derivative of the previous layer
+        self.dW = np.dot(dZ, self._A_prev.T) / self._A_prev.shape[1]
+        self.db = np.sum(dZ, axis=1, keepdims=True) / self._A_prev.shape[1]
         dA_prev = np.dot(self.W.T, dZ)
-        # return the derivative of the previous layer
         return dA_prev
 
-        # create the function "update_parameters" that updates the weights and bias
     def update_parameters(self):
         # update the weights
         if self._optimization == "adaptive":
-            self._adaptive_alpha_W = np.where(self.dW * self._adaptive_alpha_W > 0, self._adaptive_alpha_W * self.adaptive_cont, self._adaptive_alpha_W * self.adaptive_switch)
-            self.W = self.W - self.dW * self._adaptive_alpha_W
+            self._adaptive_alpha_W = np.where(self._adaptive_alpha_W * self.dW > 0, self._adaptive_alpha_W * self.adaptive_cont, self._adaptive_alpha_W * self.adaptive_switch*1)
+            self._adaptive_alpha_b = np.where(self._adaptive_alpha_b * self.db > 0, self._adaptive_alpha_b * self.adaptive_cont, self._adaptive_alpha_b * self.adaptive_switch*1)
         else:
-            self.W = self.W - self.dW * self._learning_rate
-        # update the bias
-        if self._optimization == "adaptive":
-            self._adaptive_alpha_b = np.where(self.db * self._adaptive_alpha_b > 0, self._adaptive_alpha_b * self.adaptive_cont, self._adaptive_alpha_b * self.adaptive_switch)
-            self.b = self.b - self.db * self._adaptive_alpha_b
-        else:
-            self.b = self.b - self.db * self._learning_rate
+            self.W -= self._learning_rate * self.dW
+            self.b -= self._learning_rate * self.db
     
+
+
+
+    def initialize_weights(self):
+        if self.input_shape:
+            self.W = np.random.randn(self.n_neurons, self.input_shape[0]) * self.weight_scale
+        else:
+            raise ValueError("Input shape must be specified for weight initialization.")
+        self.b = np.zeros((self.n_neurons, 1))
+
     def save_weights(self, path, file_name):
         if not os.path.exists(path):
             os.makedirs(path)
+        with h5py.File(os.path.join(path, file_name+'.h5'), 'w') as hf:
+            hf.create_dataset("W", data=self.W)
+            hf.create_dataset("b", data=self.b)
+        
+    def load_weights(self, file_path):
+        try:
+            with h5py.File(file_path, 'r') as hf:
+                self.W = hf['W'][:]
+                self.b = hf['b'][:]
+        except FileNotFoundError:
+            raise NotImplementedError("Unrecognized initialization:", file_path)
 
-        with h5py.File(path+"/"+file_name+'.h5', 'w') as hf:
-            hf.create_dataset("W",  data=self.W)
-            hf.create_dataset("b",  data=self.b)
-
-
-    
             
-    
+
+
     def __str__(self):
 
         s = self._name + " Layer:\n"
@@ -209,12 +201,12 @@ class DLLayer:
         plt.hist(self.W.reshape(-1))
 
         plt.title("W histogram")
-        
+
         plt.show()
 
         return s;
 
-    
+
 
 
 class DLModel:
@@ -222,50 +214,64 @@ class DLModel:
         self.name = name
         self.layers = [None]
         self._is_compiled = False
-    def add(self,layer):
-        self.layers.append(layer)
-    
-
-    def squared_means(self, AL,Y):
-        return np.square(Y - AL)
-
-    def squared_means_backward(self, AL,Y):
-         return -2 * (Y - AL)
-
-    def cross_entropy(self, AL,Y):
-        #AL = np.where(AL==0, 0.00000000000000001, AL)
-        return np.where(Y==0,-np.log(1-AL),-np.log(AL))
-            
-    def cross_entropy_backward(self, AL,Y):
-        #AL = np.where(AL==0, 0.00000000000000001, AL)
-        return np.where(Y==0,1/(1-AL), -1/AL)
         
+    def add(self, layer):
+        self.layers.append(layer)
+        
+    def _squared_means(self, AL, Y):
+        m = Y.shape[1]
+        error = np.sum(np.square(AL - Y)) / m
+        return error
+
+    def _squared_means_backward(self, AL, Y):
+        m = Y.shape[1]
+        dAL = 2 * (AL - Y) / m
+        return dAL
+
+    def _cross_entropy(self, AL, Y):
+        m = Y.shape[1]
+        error = np.where(Y == 0, -np.log(1-AL), -np.log(AL))
+        return error
+
+    def _cross_entropy_backward(self, AL, Y):
+        m = Y.shape[1]
+        dAL = np.where(Y == 0, 1/(1-AL), -1/AL)
+        return dAL
     
     def compile(self, loss, threshold=0.5):
-        self._is_compiled = True
+        if loss == "squared_means":
+            self.loss_forward = self._squared_means
+            self.loss_backward = self._squared_means_backward
+        elif loss == "cross_entropy":
+            self.loss_forward = self._cross_entropy
+            self.loss_backward = self._cross_entropy_backward
+        else:
+            raise ValueError("Unsupported loss function. Choose 'squared_means' or 'cross_entropy'.")
+        
         self.loss = loss
         self.threshold = threshold
-        if loss == "squared_means":
-            self.loss_forward = self.squared_means
-            self.loss_backward = self.squared_means_backward
-        if loss == "cross_entropy":
-            self.loss_forward = self.cross_entropy
-            self.loss_backward = self.cross_entropy_backward
+        self._is_compiled = True
     
-    def compute_cost(self,AL,Y):
+    def compute_cost(self, AL, Y):
         m = AL.shape[1]
-        return np.sum(self.loss_forward(AL,Y))/m
+        errors = self.loss_forward(AL, Y)
+        cost = np.sum(errors) / m
+        return cost
+        
+    def loss_backward(self, AL, Y):
+        return self.loss_backward(AL, Y)
     
+    # traning function
     def train(self, X, Y, num_iterations):
         print_ind = max(num_iterations // 100, 1)
         L = len(self.layers)
         costs = []
         for i in range(num_iterations):
-        # forward propagation
+            # forward propagation
             Al = X
             for l in range(1,L):
                 Al = self.layers[l].forward_propagation(Al,False)
-            #backward propagation
+                #backward propagation
             dAl = self.loss_backward(Al, Y)
             for l in reversed(range(1,L)):
                 dAl = self.layers[l].backward_propagation(dAl)
@@ -276,22 +282,17 @@ class DLModel:
                 J = self.compute_cost(Al, Y)
                 costs.append(J)
                 print("cost after ",str(i//print_ind),"%:",str(J))
-        return costs
-
+            return costs
+     
+    # question 2.5    
     def predict(self, X):
-            L = len(self.layers)
-            Al = X
-            for l in range(1,L):
-                Al = self.layers[l].forward_propagation(Al,True)
-            return Al > self.threshold
+        Al = X
+        for l in range(1,len(self.layers)):
+            Al = self.layers[l].forward_propagation(Al, True)
+        return Al > self.threshold
     
-    def save_weights(self, path):
-        if not os.path.exists(path):
-            os.makedirs(path)
-        
-        for i in range(1,len(self.layers)):
-            self.layers[i].save_weights(path, f"Layer{i}")
-    
+
+    # question 2.6
     def __str__(self):
         s = self.name + " description:\n\tnum_layers: " + str(len(self.layers)-1) +"\n"
         if self._is_compiled:
@@ -302,3 +303,19 @@ class DLModel:
         for i in range(1,len(self.layers)):
             s += "\tLayer " + str(i) + ":" + str(self.layers[i]) + "\n"
         return s
+    
+    # Presention 130 - 
+    def add_layer(self, layer):
+        self.layers.append(layer)
+
+    def save_weights(self, path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+        for i in range(1, len(self.layers)):
+            self.layers[i].save_weights(path, f"Layer{i}")
+            
+    def load_weights(self, path):
+       for i, layer in enumerate(self.layers):
+           layer.load_weights(os.path.join(path, f"Layer{i+1}_weights.h5"))
+
+    
