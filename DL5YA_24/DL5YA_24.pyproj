@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>testings.py</StartupFile>
+    <StartupFile>DL5YA_100.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -91,8 +91,6 @@
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.11" />
-    <InterpreterReference Include="Global|VisualStudio|env1" />
-    <InterpreterReference Include="Global|VisualStudio|env4" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
