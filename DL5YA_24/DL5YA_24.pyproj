@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>Test1.py</StartupFile>
+    <StartupFile>DL5YA_110.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -36,6 +36,9 @@
     <Compile Include="DL5YA_110.py" />
     <Compile Include="DL5YA_100.py" />
     <Compile Include="DL1.py" />
+    <Compile Include="module1.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="SDL1.py" />
     <Compile Include="Test2.py" />
     <Compile Include="Test1.py" />

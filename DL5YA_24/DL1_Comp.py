@@ -1,4 +1,5 @@
-# complete
+# DL1
+# Gad Lidror
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -29,21 +30,17 @@ class DLLayer:
         self.init_weights(W_intialization) 
     
     def init_weights(self, W_intialization):
-
+        self.b = np.zeros((self._num_units,1), dtype=float)
         if (W_intialization == "random"):
             self.W = np.random.randn(self._num_units, *(self._input_shape)) * self.random_scale
-            self.b = np.zeros((self._num_units,1), dtype=float)
-
         elif (W_intialization == "zeros"):
-            self.W = np.full((self._num_units, self._input_shape[0]), self.alpha)
-            self.b = np.zeros((self._num_units,1), dtype=float)
-
+            self.W = np.zeros((self._num_units, *self._input_shape), dtype=float)
+            #self.W = np.full((self._num_units, self._input_shape[0]), self.alpha)
         else:
             print("Invalid W_intialization type")
 
     
     def __str__(self):
-
         s = self.name + " Layer:\n"
         s += "\tnum_units: " + str(self._num_units) + "\n"
         s += "\tactivation: " + self._activation + "\n"
@@ -63,11 +60,9 @@ class DLLayer:
         # parameters
         s += "\tparameters:\n\t\tb.T: " + str(self.b.T) + "\n"
         s += "\t\tshape weights: " + str(self.W.shape)+"\n"
-
         plt.hist(self.W.reshape(-1))
         plt.title("W histogram")
-        ##plt.show()
-
+        plt.show()
         return s
     
     def _sigmoid(self, Z):
@@ -83,7 +78,6 @@ class DLLayer:
         return np.tanh(Z)
     
     def _trim_sigmoid(self,Z):
-
         with np.errstate(over='raise', divide='raise'):
             try:
                 A = 1/(1+np.exp(-Z))
@@ -101,7 +95,6 @@ class DLLayer:
         return A
 
     def _trim_tanh(self,Z):
-
         A = np.tanh(Z)
         TRIM = self.activation_trim
 
@@ -175,38 +168,29 @@ class DLLayer:
 
     def _relu_backward(self,dA):
         dZ = np.where(self.Z <= 0, 0, dA)
-        
         return dZ
     
     def _leaky_relu_backward(self,dA):
         dZ = np.where(self.Z <= 0, self.leaky_relu_d * dA, dA)
-
         return dZ
     
     def tanh_backward(self,dA):
         dZ = dA * (1 - np.power(self._tanh(self.Z), 2))
-        
         return dZ
 
     def activation_backward(self, dA):
         if self._activation == "sigmoid":
             return self._sigmoid_backward(dA)
-        
         elif self._activation == "relu":
             return self._relu_backward(dA)
-        
         elif self._activation == "leaky_relu":
             return self._leaky_relu_backward(dA)
-        
         elif self._activation == "tanh":
             return self.tanh_backward(dA)
-        
         elif self._activation == "trim_sigmoid":
             return self._sigmoid_backward(dA)
-        
         elif self._activation == "trim_tanh":
             return self.tanh_backward(dA)
-        
         else:
             print("Invalid activation type")
             return None
@@ -217,22 +201,17 @@ class DLLayer:
         self.dW = np.dot(dZ, self._A_prev.T) / m
         self.db = np.sum(dZ, axis=1, keepdims=True) / m
         dA_prev = np.dot(self.W.T, dZ)
-        
         return dA_prev
 
-    
     def update_parameters(self):
-        if self._optimization == "adaptive":
-            self._adaptive_alpha_b = np.where(self.db * self._adaptive_alpha_b >= 0, self._adaptive_alpha_b * self.adaptive_cont, -self._adaptive_alpha_b * self.adaptive_switch)
-            self._adaptive_alpha_W = np.where(self.dW * self._adaptive_alpha_W >= 0, self._adaptive_alpha_W * self.adaptive_cont, -self._adaptive_alpha_W * self.adaptive_switch)
-
-            self.W -= self._adaptive_alpha_W
-            self.b -= self._adaptive_alpha_b
-
+        if self._optimization == "adaptive":    # Update parameters with adaptive learning rate. keep the sign positive. Update is multiply by the derived value
+            self._adaptive_alpha_b = np.where(self.db * self._adaptive_alpha_b >= 0, self._adaptive_alpha_b * self.adaptive_cont, self._adaptive_alpha_b * self.adaptive_switch)
+            self._adaptive_alpha_W = np.where(self.dW * self._adaptive_alpha_W >= 0, self._adaptive_alpha_W * self.adaptive_cont, self._adaptive_alpha_W * self.adaptive_switch)
+            self.W -= self._adaptive_alpha_W * self.dW
+            self.b -= self._adaptive_alpha_b * self.db
         else:
             self.W -= self.alpha * self.dW
             self.b -= self.alpha * self.db
-
 
 class DLModel:
     def __init__(self, name="Model"):
@@ -281,7 +260,6 @@ class DLModel:
         for i in range(num_iterations):
             # forward propagation
             Al = X
-
             for l in range(1,L):
                 Al = self.layers[l].forward_propagation(Al,False)
             #backward propagation
@@ -289,12 +267,10 @@ class DLModel:
 
             for l in reversed(range(1,L)):
                 dAl = self.layers[l].backward_propagation(dAl)
-
                 # update parameters
                 self.layers[l].update_parameters()
 
             #record progress
-
             if i > 0 and i % print_ind == 0:
                 J = self.compute_cost(Al, Y)
                 costs.append(J)
@@ -305,22 +281,16 @@ class DLModel:
     def predict(self, X):
         L = len(self.layers)
         Al = X
-
         for l in range(1,L):
             Al = self.layers[l].forward_propagation(Al, True)
-        
         return np.where(Al > self.threshold, True, False)
     
     def __str__(self):
-
         s = self.name + " description:\n\tnum_layers: " + str(len(self.layers)-1) +"\n"
         if self._is_compiled:
-
             s += "\tCompilation parameters:\n"
             s += "\t\tprediction threshold: " + str(self.threshold) +"\n"
             s += "\t\tloss function: " + self.loss + "\n\n"
-
         for i in range(1,len(self.layers)):
             s += "\tLayer " + str(i) + ":" + str(self.layers[i]) + "\n"
-
         return s
