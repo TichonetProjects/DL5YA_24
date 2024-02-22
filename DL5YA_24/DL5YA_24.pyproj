@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>DL5YA_110.py</StartupFile>
+    <StartupFile>DL5YA_130.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -26,19 +26,19 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DL2.py" />
+    <Compile Include="DL2_Comp.py" />
     <Compile Include="DL1_Comp.py" />
-    <Compile Include="DL5YA_002.py" />
-    <Compile Include="DL5YA_003.py" />
-    <Compile Include="DL5YA_004.py" />
-    <Compile Include="DL5YA_005.py" />
-    <Compile Include="DL5YA_006.py" />
-    <Compile Include="DL5YA_008.py" />
+    <Compile Include="Archive\DL5YA_002.py" />
+    <Compile Include="Archive\DL5YA_003.py" />
+    <Compile Include="Archive\DL5YA_004.py" />
+    <Compile Include="Archive\DL5YA_005.py" />
+    <Compile Include="Archive\DL5YA_006.py" />
+    <Compile Include="Archive\DL5YA_008.py" />
+    <Compile Include="DL5YA_130.py" />
     <Compile Include="DL5YA_110.py" />
-    <Compile Include="DL5YA_100.py" />
+    <Compile Include="Archive\DL5YA_100.py" />
     <Compile Include="DL1.py" />
-    <Compile Include="module1.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="SDL1.py" />
     <Compile Include="Test2.py" />
     <Compile Include="Test1.py" />
@@ -54,6 +54,7 @@
     <Compile Include="unit10\c2w3_tf_utils.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Archive\" />
     <Folder Include="unit10\" />
     <Folder Include="unit10\datasets\" />
     <Folder Include="unit10\datasets\cat_nocat\" />

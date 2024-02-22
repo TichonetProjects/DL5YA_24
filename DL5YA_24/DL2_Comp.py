@@ -1,8 +1,11 @@
-# DL1
+# DL2
 # Gad Lidror
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import os
+import h5py
+
 
 # =============================================================
 # =============================================================
@@ -29,6 +32,8 @@ import random
 # - "squared_means"
 # - "cross_entropy"
 # - else - raise "Unimplemented loss function" exception
+#
+# Save the weights of the model. Acitate the save_weights of each layer
 class DLModel:
     def __init__(self, name="Model"):
         self.name = name
@@ -97,6 +102,8 @@ class DLModel:
                 J = self.compute_cost(Al, Y)
                 costs.append(J)
                 print("cost after ",str(i//print_ind),"%:",str(J))
+
+        costs.append(self.compute_cost(Al, Y))  # record the last cost
         return costs
     
     # predicts the value of a new sample
@@ -116,6 +123,11 @@ class DLModel:
         for i in range(1,len(self.layers)):
             s += "\tLayer " + str(i) + ":" + str(self.layers[i]) + "\n"
         return s
+    
+    #save the weights of the model. Acitate the save_weights of each layer
+    def save_weights(self,path):
+        for i in range(1,len(self.layers)):
+            self.layers[i].save_weights(path,"Layer"+str(i))
 
     
 # =============================================================
@@ -136,7 +148,6 @@ class DLModel:
 #    - relu ( default )
 #    - leaky_relu
 #    - softmax
-#    - trim_softmax
 #    - NoActivation
 # W_initialization - name of the initialization funciton (same for all the layer), implemented : zeros, random.
 # learning_rate - sometimes called alpha.
@@ -146,7 +157,7 @@ class DLModel:
 #    * Forward and Backward propagation 
 
 class DLLayer:
-    def __init__(self, name, num_units, input_shape : tuple, activation="relu", W_intialization = "random", learning_rate = 1.2, optimization=None):
+    def __init__(self, name, num_units, input_shape : tuple, activation="relu", W_initialization = "random", learning_rate = 1.2, optimization=None, random_scale = 0.01):
         self.name = name
         self.alpha = learning_rate
         self._num_units = num_units
@@ -155,8 +166,8 @@ class DLLayer:
         self.prediction_function = activation
         self._optimization = optimization
 
-        self.random_scale = 0.01
-        self.activation_trim = 0.0000000001
+        self._random_scale = random_scale
+        self.activation_trim = 1e-10
         self._activation_forward = activation;
         
         if (activation == "leaky_relu"):
@@ -168,28 +179,67 @@ class DLLayer:
             self.adaptive_cont = 1.1
             self.adaptive_switch = 0.5
 
-        self.init_weights(W_intialization) 
-    
-    def init_weights(self, W_intialization):
-        self.b = np.zeros((self._num_units,1), dtype=float) # b is init to zeros, always
-        if (W_intialization == "random"):
-            self.W = np.random.randn(self._num_units, *(self._input_shape)) * self.random_scale
-        elif (W_intialization == "zeros"):
-            self.W = np.zeros((self._num_units, *self._input_shape), dtype=float)
+        self.init_weights(W_initialization) 
+
+        # activation methods
+        if activation == "sigmoid":
+            self.activation_forward = self._sigmoid
+            self.activation_backward = self._sigmoid_backward
+        elif activation == "trim_sigmoid":
+            self.activation_forward = self._trim_sigmoid
+            self.activation_backward = self._trim_sigmoid_backward
+        elif activation == "tanh":
+            self.activation_forward = self._tanh
+            self.activation_backward = self._tanh_backward
+        elif activation == "trim_tanh":
+            self.activation_forward = self._trim_tanh
+            self.activation_backward = self._trim_tanh_backward
+        elif activation == "relu":
+            self.activation_forward = self._relu
+            self.activation_backward = self._relu_backward
+        elif activation == "leaky_relu":
+            self.activation_forward = self._leaky_relu
+            self.activation_backward = self._leaky_relu_backward
+        elif activation == "softmax":
+            self.activation_forward = self._softmax
+            self.activation_backward = self._softmax_backward
         else:
-            print("Invalid W_intialization type")
+            self.activation_forward = None
+            self.activation_backward = None
+            print("*** Invalid activation type")
+            raise NotImplementedError("Unrecognized activation function:", activation)
+        self._prediction=self.activation_forward
     
+    def _get_W_shape(self):
+        return (self._num_units, *(self._input_shape))
+    
+    def init_weights(self, W_initialization):
+        self.b = np.zeros((self._num_units,1), dtype=float) # b is init to zeros, always
+        if (W_initialization == "random"):
+            self.W = np.random.randn(self._num_units, *(self._input_shape)) * self._random_scale
+        elif (W_initialization == "zeros"):
+            self.W = np.zeros((self._num_units, *self._input_shape), dtype=float)
+        elif W_initialization == "He":
+            self.W = np.random.randn(*self._get_W_shape()) * np.sqrt(2.0/sum(self._input_shape))
+        elif W_initialization == "Xaviar":
+            self.W = np.random.randn(*self._get_W_shape()) * np.sqrt(1.0/sum(self._input_shape))
+        else:
+            try:
+                with h5py.File(W_initialization, 'r') as hf:
+                    self.W = hf['W'][:]
+                    self.b = hf['b'][:]
+            except (FileNotFoundError):
+                raise NotImplementedError("Unrecognized initialization:", W_initialization)
+
     def __str__(self):
         s = self.name + " Layer:\n"
         s += "\tnum_units: " + str(self._num_units) + "\n"
         s += "\tactivation: " + self._activation + "\n"
-
         if self._activation == "leaky_relu":
             s += "\t\tleaky relu parameters:\n"
             s += "\t\t\tleaky_relu_d: " + str(self.leaky_relu_d)+"\n"
         s += "\tinput_shape: " + str(self._input_shape) + "\n"
         s += "\tlearning_rate (alpha): " + str(self.alpha) + "\n"
-
         #optimization
         if self._optimization == "adaptive":
             s += "\t\tadaptive parameters:\n"
@@ -204,91 +254,63 @@ class DLLayer:
         plt.show()
         return s
     
-    # activation functions
-    # ---------------------
+    # activation functions - forwars and backward
+    # -------------------------------------------
     def _sigmoid(self, Z):
         return 1/(1+np.exp(-Z))
-   
+    def _sigmoid_backward(self,dA):
+        A = self._sigmoid(self.Z)
+        dZ = dA * A * (1-A)
+        return dZ
+
     def _relu(self, Z):
         return np.maximum(0,Z)
+    def _relu_backward(self,dA):
+        dZ = np.where(self.Z <= 0, 0, dA)
+        return dZ
     
     def _leaky_relu(self, Z):
         return np.maximum(self.leaky_relu_d*Z,Z)
+    def _leaky_relu_backward(self,dA):
+        dZ = np.where(self.Z <= 0, self.leaky_relu_d * dA, dA)
+        return dZ
     
     def _tanh(self, Z):
         return np.tanh(Z)
+    def tanh_backward(self,dA):
+        dZ = dA * (1 - np.power(self._tanh(self.Z), 2))
+        return dZ   
     
     def _trim_sigmoid(self,Z):
         with np.errstate(over='raise', divide='raise'):
             try:
                 A = 1/(1+np.exp(-Z))
-
             except FloatingPointError:
                 Z = np.where(Z < -100, -100, Z)
                 A = 1/(1+np.exp(-Z))
-
         TRIM = self.activation_trim
-
         if TRIM > 0:
             A = np.where(A < TRIM,TRIM,A)
             A = np.where(A > 1-TRIM,1-TRIM, A)
-
         return A
+    def _trim_sigmoid_backward(self,dA):
+        A = self._trim_sigmoid(self.Z)
+        dZ = dA * A * (1-A)
+        return dZ
 
     def _trim_tanh(self,Z):
         A = np.tanh(Z)
         TRIM = self.activation_trim
-
         if TRIM > 0:
             A = np.where(A < -1+TRIM,TRIM,A)
             A = np.where(A > 1-TRIM,1-TRIM, A)
-
         return A
+    def _trim_tanh_backward(self,dA):
+        A = self._trim_tanh(self._Z)
+        dZ = dA * (1-A**2)
+        return dZ
     
-    def activation_forward(self, Z):
-        if self._activation_forward == "sigmoid":
-            return self._sigmoid(Z)
-        
-        elif self._activation_forward == "relu":
-            return self._relu(Z)
-        
-        elif self._activation_forward == "leaky_relu":
-            return self._leaky_relu(Z)
-        
-        elif self._activation_forward == "tanh":
-            return self._tanh(Z)
-        
-        elif self._activation_forward == "trim_sigmoid":
-            return self._trim_sigmoid(Z)
-            
-        elif self._activation_forward == "trim_tanh":
-            return self._trim_tanh(Z)
-        else:
-            print("Invalid activation type")
-            return None
-        
-    def prediction(self, Z):
-        if self.prediction_function == "sigmoid":
-            return self._sigmoid(Z)
-        
-        elif self.prediction_function == "relu":
-            return self._relu(Z)
-        
-        elif self.prediction_function == "leaky_relu":
-            return self._leaky_relu(Z)
-        
-        elif self.prediction_function == "tanh":
-            return self._tanh(Z)
-        
-        elif self.prediction_function == "trim_sigmoid":
-            return self._trim_sigmoid(Z)
-        
-        elif self.prediction_function == "trim_tanh":
-            return self._trim_tanh(Z)
-        else:
-            print("Invalid activation type")
-            return None
-        
+
 
     # forward propagation
     # -------------------    
@@ -296,48 +318,12 @@ class DLLayer:
         self._A_prev = A_prev
         self.Z = np.dot(self.W, self._A_prev) + self.b
         if (is_predict):
-            self.A = self.prediction(self.Z)
+            self.A = self._prediction(self.Z)
         else:
             self.A = self.activation_forward(self.Z)
         return self.A
-    
 
-    # backword activation functions
-    # -----------------------------    
-    def _sigmoid_backward(self,dA):
-        A = self._sigmoid(self.Z)
-        dZ = dA * A * (1-A)
-        return dZ
 
-    def _relu_backward(self,dA):
-        dZ = np.where(self.Z <= 0, 0, dA)
-        return dZ
-    
-    def _leaky_relu_backward(self,dA):
-        dZ = np.where(self.Z <= 0, self.leaky_relu_d * dA, dA)
-        return dZ
-    
-    def tanh_backward(self,dA):
-        dZ = dA * (1 - np.power(self._tanh(self.Z), 2))
-        return dZ
-
-    def activation_backward(self, dA):
-        if self._activation == "sigmoid":
-            return self._sigmoid_backward(dA)
-        elif self._activation == "relu":
-            return self._relu_backward(dA)
-        elif self._activation == "leaky_relu":
-            return self._leaky_relu_backward(dA)
-        elif self._activation == "tanh":
-            return self.tanh_backward(dA)
-        elif self._activation == "trim_sigmoid":
-            return self._sigmoid_backward(dA)
-        elif self._activation == "trim_tanh":
-            return self.tanh_backward(dA)
-        else:
-            print("Invalid activation type")
-            return None
-        
     # backword propagation
     # --------------------    
     def backward_propagation(self, dA):
@@ -359,4 +345,14 @@ class DLLayer:
         else:
             self.W -= self.alpha * self.dW
             self.b -= self.alpha * self.db
+    
+            
+    # save the Ws and b of the layer        
+    def save_weights(self,path,file_name):
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        with h5py.File(path+"/"+file_name+'.h5', 'w') as hf:
+            hf.create_dataset("W",  data=self.W)
+            hf.create_dataset("b",  data=self.b)
 
