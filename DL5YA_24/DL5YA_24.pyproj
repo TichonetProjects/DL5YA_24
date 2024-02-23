@@ -78,6 +78,7 @@
     <Content Include="unit10\__pycache__\c2w2_opt_utils.cpython-36.pyc" />
     <Content Include="unit10\__pycache__\c2w2_testCases.cpython-36.pyc" />
     <Content Include="unit10\__pycache__\c2w2_utils.cpython-36.pyc" />
+    <Content Include="unit10\cat1.png" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.11" />
