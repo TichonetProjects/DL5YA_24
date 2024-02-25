@@ -429,7 +429,7 @@ def update_parameters_adaptive_test_case():
 
     return parameters, grads
 
-def load_datasetC1W4():
+def load_datasetC1W4():  
     return load_dataset(r'\unit10\datasets\cat_nocat')
 
 def load_dataset(path):
