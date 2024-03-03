@@ -8,6 +8,8 @@ from unit10 import c1w5_utils as u10
 
 from DL3_Comp import *
 
+
+
 # additions for stage 2
 import matplotlib
 from sklearn.datasets import fetch_openml
@@ -158,7 +160,7 @@ num_px = 28
 img_path = r'data\imag\three.jpg' # full path of the rgb image
 my_label_y = [0,0,0,1,0,0,0,0,0,0] # change the 1’s position to fit image
 image = Image.open(img_path)
-image28 = image.resize((num_px, num_px), Image.ANTIALIAS) # resize to 28X28 
+image28 = image.resize((num_px, num_px), Image.LANCZOS) # resize to 28X28 
 plt.imshow(image)	   # Before scale 
 plt.show();
 plt.imshow(image28)  # After scale
