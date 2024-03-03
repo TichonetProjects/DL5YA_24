@@ -6,6 +6,8 @@ import random
 import os
 import h5py
 
+from   sklearn.metrics import classification_report, confusion_matrix
+
 
 # =============================================================
 # =============================================================
@@ -31,6 +33,7 @@ import h5py
 # Predefined loss functions, already implemented, to choose from:
 # - "squared_means"
 # - "cross_entropy"
+# - "categorical_cross_entropy"
 # - else - raise "Unimplemented loss function" exception
 #
 # Save the weights of the model. Acitate the save_weights of each layer
@@ -46,16 +49,31 @@ class DLModel:
     
     # loss functions
     # --------------    
-    def squared_means(self, AL, Y):
+    def _squared_means(self, AL, Y):
         m = Y.shape[1]
         return np.power(AL-Y, 2) / m
-    def squared_means_derivative(self, AL, Y):
+    def _squared_means_derivative(self, AL, Y):
         m = Y.shape[1]
         return 2*(AL-Y) / m
-    def cross_entropy(self, AL, Y):
+    def _cross_entropy(self, AL, Y):
         return np.where(Y == 0, -np.log(1-AL), -np.log(AL))/Y.shape[1]
-    def cross_entropy_derivative(self, AL, Y):
+    def _cross_entropy_derivative(self, AL, Y):
         return np.where(Y == 0, 1/(1-AL), -1/AL)/Y.shape[1]
+    #def _cross_entropy_backward(self, AL, Y):
+    #    m = AL.shape[1]
+    #    dAL = np.where(Y == 0, 1/(1-AL), -1/AL) 
+    #    return dAL
+    def _categorical_cross_entropy(self, AL, Y):
+        eps = 1e-10
+        AL = np.where(AL==0,eps,AL)     # to avoid divide by zero
+        AL = np.where(AL == 1, 1-eps,AL)
+        errors = np.where(Y == 1, -np.log(AL), 0) 
+        return errors
+    def _categorical_cross_entropy_backward(self, AL, Y):
+        # in case output layer's activation is 'softmax'- compute dZL directly using: dZL = Y - AL
+        dZl = AL - Y
+        return dZl
+
     
     # compile the model. must be called prior to training
     def compile(self, loss, threshold = 0.5):
@@ -64,11 +82,14 @@ class DLModel:
         self.threshold = threshold
 
         if (loss == "squared_means"):
-            self.loss_forward = self.squared_means
-            self.loss_backward = self.squared_means_derivative
+            self.loss_forward = self._squared_means
+            self.loss_backward = self._squared_means_derivative
         elif (loss == "cross_entropy"):
-            self.loss_forward = self.cross_entropy
-            self.loss_backward = self.cross_entropy_derivative
+            self.loss_forward = self._cross_entropy
+            self.loss_backward = self._cross_entropy_derivative
+        elif (loss == "categorical_cross_entropy"):
+            self.loss_forward = self._categorical_cross_entropy
+            self.loss_backward = self._categorical_cross_entropy_backward
         else:
             print("*** Invalid loss function")
             raise NotImplementedError("Unimplemented loss function: " + loss)
@@ -112,8 +133,23 @@ class DLModel:
         Al = X
         for l in range(1,L):
             Al = self.layers[l].forward_propagation(Al, True)
+        if Al.shape[0] > 1: # softmax 
+            predictions = np.where(Al==Al.max(axis=0),1,0)
+            return predictions
         return np.where(Al > self.threshold, True, False)
-    
+   
+    # enable printout of a confusion matrix represantation of train / test samples
+    def confusion_matrix(self, X, Y):
+        prediction = self.predict(X)
+        prediction_index = np.argmax(prediction, axis=0)
+        Y_index = np.argmax(Y, axis=0)
+        right = np.sum(prediction_index == Y_index)
+        print("accuracy: ",str(right/len(Y[0])))
+        cf = confusion_matrix(prediction_index, Y_index)
+        print(cf)
+        return cf
+
+
     def __str__(self):
         s = self.name + " description:\n\tnum_layers: " + str(len(self.layers)-1) +"\n"
         if self._is_compiled:
@@ -200,9 +236,12 @@ class DLLayer:
         elif activation == "leaky_relu":
             self.activation_forward = self._leaky_relu
             self.activation_backward = self._leaky_relu_backward
-        #elif activation == "softmax":
-        #    self.activation_forward = self._softmax
-        #    self.activation_backward = self._softmax_backward
+        elif activation == "softmax":
+            self.activation_forward = self._softmax
+            self.activation_backward = self._softmax_backward
+        elif activation == "trim_softmax":
+            self.activation_forward = self._trim_softmax
+            self.activation_backward = self._softmax_backward
         else:
             self.activation_forward = None
             self.activation_backward = None
@@ -309,8 +348,23 @@ class DLLayer:
         A = self._trim_tanh(self._Z)
         dZ = dA * (1-A**2)
         return dZ
-    
-
+    def _softmax(self, Z):
+        eZ = np.exp(Z)
+        A = eZ/np.sum(eZ, axis=0)
+        return A    
+    def _softmax_backward(self, dZ):
+        #an empty backward functio that gets dZ and returns it
+        #just to comply with the flow of the model
+        return dZ
+    def _trim_softmax(self, Z):
+        with np.errstate(over='raise', divide='raise'):
+            try:
+                eZ = np.exp(Z)
+            except FloatingPointError:
+                Z = np.where(Z > 100, 100,Z)
+                eZ = np.exp(Z)
+        A = eZ/np.sum(eZ, axis=0)
+        return A
 
     # forward propagation
     # -------------------    
