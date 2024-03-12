@@ -232,4 +232,4 @@ p = model.predict(my_image)
 print ("L-layer model predicts a \"" + classes[int(p.item()),].decode("utf-8") +  "\" picture.")
 
 
-
+#This is a new line
