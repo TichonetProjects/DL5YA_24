@@ -69,7 +69,6 @@ def load_extra_datasets():
 
     return noisy_circles, noisy_moons, blobs, gaussian_quantiles, no_structure
 
-
 ###### Test cases procedures
 import numpy as np
 
