@@ -211,6 +211,5 @@ plt.show()
 predictions = model.predict(X)
 m = Y.size
 print ('Accuracy: %d' % float((np.dot(Y,predictions.T) + np.dot(1-Y,1-predictions.T))[0][0]/float(m)*100) + '%')
-# This is it
-# and this is the end of DL1
 
+# HHHHHHH
