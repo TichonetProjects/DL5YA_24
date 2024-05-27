@@ -1,4 +1,4 @@
-# DL2
+# DL4
 # Gad Lidror
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,6 +42,7 @@ class DLModel:
         self.name = name
         self.layers = [None]
         self._is_compiled = False
+        self.is_train = False
 
     # add a layer to the model
     def add(self, layer):
@@ -109,7 +110,7 @@ class DLModel:
             # forward propagation
             Al = X
             for l in range(1,L):
-                Al = self.layers[l].forward_propagation(Al,False)
+                Al = self.layers[l].forward_propagation(Al)
             #backward propagation
             dAl = self.loss_backward(Al, Y)
 
@@ -132,7 +133,7 @@ class DLModel:
         L = len(self.layers)
         Al = X
         for l in range(1,L):
-            Al = self.layers[l].forward_propagation(Al, True)
+            Al = self.layers[l].forward_propagation(Al)
         if Al.shape[0] > 1: # softmax 
             predictions = np.where(Al==Al.max(axis=0),1,0)
             return predictions
@@ -160,6 +161,12 @@ class DLModel:
             s += "\tLayer " + str(i) + ":" + str(self.layers[i]) + "\n"
         return s
     
+
+    def set_train (self, is_train):
+        self.is_train = is_train
+        for i in range(1,len(self.layers)):
+            self.layers[i].set_train(is_train)
+        
     #save the weights of the model. Acitate the save_weights of each layer
     def save_weights(self,path):
         for i in range(1,len(self.layers)):
@@ -193,14 +200,15 @@ class DLModel:
 #    * Forward and Backward propagation 
 
 class DLLayer:
-    def __init__(self, name, num_units, input_shape : tuple, activation="relu", W_initialization = "random", learning_rate = 1.2, optimization=None, random_scale = 0.01):
+    def __init__(self, name, num_units, input_shape : tuple, activation="relu", W_initialization = "random", learning_rate = 1.2, optimization=None, random_scale = 0.01, regularization=None):
         self.name = name
         self.alpha = learning_rate
         self._num_units = num_units
         self._input_shape = input_shape
         self._activation = activation
-        self.prediction_function = activation
         self._optimization = optimization
+        self.is_train = False
+        self.regularization = regularization
 
         self._random_scale = random_scale
         self.activation_trim = 1e-10
@@ -243,11 +251,22 @@ class DLLayer:
             self.activation_forward = self._trim_softmax
             self.activation_backward = self._softmax_backward
         else:
-            self.activation_forward = None
-            self.activation_backward = None
+            self.activation_forward = self._NoActivation
+            self.activation_backward = self._NoActivation_backward            
+        '''
             print("*** Invalid activation type")
             raise NotImplementedError("Unrecognized activation function:", activation)
+        '''    
         self._prediction=self.activation_forward
+
+        self.L2_lambda = 0              # i.e. no L2
+        self.dropout_keep_prob = 1      # i.e. no dropout
+
+        if self.regularization == "L2":
+            self.L2_lambd = 0.6
+        elif self.regularization == "dropout":
+            self.dropout_keep_prob = 0.6
+          
     
     def _get_W_shape(self):
         return (self._num_units, *(self._input_shape))
@@ -272,25 +291,33 @@ class DLLayer:
 
     def __str__(self):
         s = self.name + " Layer:\n"
+        s += "\tinput_shape: " + str(self._input_shape) + "\n"
         s += "\tnum_units: " + str(self._num_units) + "\n"
         s += "\tactivation: " + self._activation + "\n"
         if self._activation == "leaky_relu":
             s += "\t\tleaky relu parameters:\n"
             s += "\t\t\tleaky_relu_d: " + str(self.leaky_relu_d)+"\n"
-        s += "\tinput_shape: " + str(self._input_shape) + "\n"
         s += "\tlearning_rate (alpha): " + str(self.alpha) + "\n"
         #optimization
         if self._optimization == "adaptive":
             s += "\t\tadaptive parameters:\n"
             s += "\t\t\tcont: " + str(self.adaptive_cont)+"\n"
             s += "\t\t\tswitch: " + str(self.adaptive_switch)+"\n"
+        #regularization
+        s += "\tregularization: " + str(self.regularization) + "\n"
+        if self.regularization == "L2":
+            s += "\t\tL2 Parameters: \n"
+            s += "\t\t\tL2 Lambda = " + str(self.L2_lambd)+"\n"
+        elif self.regularization == "dropout":
+            s += "\t\tdropout Parameters: \n"
+            s += "\t\t\tkeep prob = " + str(self.dropout_keep_prob)+"\n"
 
         # parameters
-        s += "\tparameters:\n\t\tb.T: " + str(self.b.T) + "\n"
+        s += "\tparameters:\n\t\tshape b: " + str(self.b.shape) + "\n"
         s += "\t\tshape weights: " + str(self.W.shape)+"\n"
-        plt.hist(self.W.reshape(-1))
-        plt.title("W histogram")
-        plt.show()
+        #plt.hist(self.W.reshape(-1))
+        #plt.title("W histogram")
+        #plt.show()
         return s
     
     # activation functions - forwars and backward
@@ -366,26 +393,55 @@ class DLLayer:
         A = eZ/np.sum(eZ, axis=0)
         return A
 
+    def _NoActivation(self, Z):
+        return Z
+    def _NoActivation_backward(self, dZ):
+        return dZ
+
+
+    # dropout settings. If no dropout, will work only in the train phase
+    def forward_dropout(self, A_prev):
+        if (self.regularization == "dropout" and self.is_train):
+            self._D = np.random.rand(*A_prev.shape)
+            self._D = np.where(self._D > self.dropout_keep_prob, 0, 1)
+            A_prev *= self._D
+            A_prev /= self.dropout_keep_prob
+        return np.array(A_prev, copy=True)
+    
     # forward propagation
     # -------------------    
-    def forward_propagation(self, A_prev, is_predict):
-        self._A_prev = A_prev
+    def forward_propagation(self, A_prev):
+        self._A_prev = self.forward_dropout(A_prev)
         self.Z = np.dot(self.W, self._A_prev) + self.b
-        if (is_predict):
-            self.A = self._prediction(self.Z)
-        else:
-            self.A = self.activation_forward(self.Z)
+        self.A = self.activation_forward(self.Z)
         return self.A
 
 
     # backword propagation
     # --------------------    
+    
+    # Backward, if dropout (backward is also in the train mode)
+    def backward_dropout(self, dA_prev):
+        if (self.regularization == "dropout" and self.is_train):
+            dA_prev *= self._D
+            dA_prev /= self.dropout_keep_prob
+        return dA_prev
+    
     def backward_propagation(self, dA):
         m = self._A_prev.shape[1]
         dZ = self.activation_backward(dA)
         self.dW = np.dot(dZ, self._A_prev.T) / m
         self.db = np.sum(dZ, axis=1, keepdims=True) / m
-        dA_prev = np.dot(self.W.T, dZ)
+
+        if self.regularization == 'L2':
+            self.dW += (self.L2_lambda/m) * self.W
+        dA_prev = self.W.T @ dZ
+        if (self.regularization == "dropout"):
+            dA_prev = self.backward_dropout(dA_prev)
+
+        
+
+        ###dA_prev = np.dot(self.W.T, dZ)
         return dA_prev
 
     # update parameters
@@ -400,6 +456,8 @@ class DLLayer:
             self.W -= self.alpha * self.dW
             self.b -= self.alpha * self.db
     
+    def set_train (self, is_train):
+        self.is_train = is_train
             
     # save the Ws and b of the layer        
     def save_weights(self,path,file_name):

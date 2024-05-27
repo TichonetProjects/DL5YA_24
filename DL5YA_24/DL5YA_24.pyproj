@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>DL5YA_140.py</StartupFile>
+    <StartupFile>DL5YA_310.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -36,14 +36,19 @@
     <Compile Include="Archive\DL5YA_005.py" />
     <Compile Include="Archive\DL5YA_006.py" />
     <Compile Include="Archive\DL5YA_008.py" />
+    <Compile Include="DL4_Comp.py" />
     <Compile Include="DL5YA_140.py" />
     <Compile Include="DL5YA_130.py" />
     <Compile Include="DL5YA_110.py" />
     <Compile Include="Archive\DL5YA_100.py" />
     <Compile Include="DL1.py" />
-    <Compile Include="SDL1.py" />
+    <Compile Include="DL5YA_310.py" />
+    <Compile Include="DL7.py" />
+    <Compile Include="GuiTest.py" />
+    <Compile Include="MyMainWindow.py" />
     <Compile Include="Test2.py" />
     <Compile Include="Test1.py" />
+    <Compile Include="TestAPI.py" />
     <Compile Include="unit10\b_utils.py" />
     <Compile Include="unit10\c1w2_utils.py" />
     <Compile Include="unit10\c1w3_utils.py" />
@@ -59,13 +64,20 @@
     <Folder Include="Archive\" />
     <Folder Include="data\" />
     <Folder Include="data\imag\" />
+    <Folder Include="Layer\" />
     <Folder Include="unit10\" />
     <Folder Include="unit10\datasets\" />
     <Folder Include="unit10\datasets\cat_nocat\" />
     <Folder Include="unit10\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="data\dog.jpg" />
+    <Content Include="data\imag\five.png" />
+    <Content Include="data\imag\seven.jpg" />
     <Content Include="data\imag\three.jpg" />
+    <Content Include="data\melody.jpg" />
+    <Content Include="Layer\Layer1.h5" />
+    <Content Include="Layer\Layer2.h5" />
     <Content Include="requirements.txt" />
     <Content Include="unit10\dataB1W3Ex2.xlsx" />
     <Content Include="unit10\datasets\cat_nocat\test_catvnoncat.h5" />

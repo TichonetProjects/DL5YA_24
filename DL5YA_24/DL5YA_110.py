@@ -214,3 +214,5 @@ print ('Accuracy: %d' % float((np.dot(Y,predictions.T) + np.dot(1-Y,1-prediction
 # This is it
 # and this is the end of DL1
 
+
+# This function will 
