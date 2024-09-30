@@ -83,5 +83,7 @@ def train3_max(alpha, epocs, func, funcD):
         x = x + alpha * funcD(x)
     return (x,func(x), funcD(x))
 
+#random.seed(42)
+
 print("MAX INFO: ", train3_max(0.001, 1000000, f3, f3_tag))
 print("MIN INFO: ", train3_min(0.001, 1000000, f3, f3_tag))
