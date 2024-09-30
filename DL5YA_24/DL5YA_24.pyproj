@@ -5,7 +5,7 @@
     <ProjectGuid>{cb60e341-0d00-4dc5-9d3e-54440b861470}</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>SemiSortedArray.py</StartupFile>
+    <StartupFile>Ex9_20606.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -44,6 +44,10 @@
     <Compile Include="DL1.py" />
     <Compile Include="DL5YA_310.py" />
     <Compile Include="DL7.py" />
+    <Compile Include="Ex11_20606.py" />
+    <Compile Include="Ex6_20606.py" />
+    <Compile Include="Ex7_20606.py" />
+    <Compile Include="Ex9_20606.py" />
     <Compile Include="exMathOps.py" />
     <Compile Include="GuiTest.py" />
     <Compile Include="MyMainWindow.py" />
